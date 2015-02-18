@@ -105,9 +105,12 @@ int main(int argc,char* argv[]){
             MPI_Send(&lower_row,1,MPI_INT,i,MASTER_TO_SLAVE_TAG,MPI_COMM_WORLD);
             MPI_Send(&upper_row,1,MPI_INT,i,MASTER_TO_SLAVE_TAG + 1,MPI_COMM_WORLD);
             //kirim data matriks
-            printf("Task 0 will send to task %d with row: %d to %d\n",i,lower_row,upper_row);
-            //MPI_Send(mat_a + lower_row * (MAXSIZE) ,(upper_row - lower_row) * MAXSIZE,MPI_INT,i,MASTER_TO_SLAVE_TAG + 2,MPI_COMM_WORLD);
-            MPI_Send(mat_a,mat_size * MAXSIZE,MPI_INT,i,MASTER_TO_SLAVE_TAG + 2,MPI_COMM_WORLD);
+            if (valid_range(lower_row,mat_size) && valid_range(upper_row - 1,mat_size)){
+                printf("Task 0 will send to task %d with row: %d to %d\n",i,lower_row,upper_row);
+                MPI_Send(mat_a,mat_size * MAXSIZE,MPI_INT,i,MASTER_TO_SLAVE_TAG + 2,MPI_COMM_WORLD);
+               //MPI_Send(mat_a + lower_row * MAXSIZE,(upper_row - lower_row) * MAXSIZE,MPI_INT,i,MASTER_TO_SLAVE_TAG + 2,MPI_COMM_WORLD);
+            }
+            
         }
         
         //set bagian si master sendiri
@@ -118,8 +121,11 @@ int main(int argc,char* argv[]){
         //slave terima data
         MPI_Recv(&lower_row ,   1,  MPI_INT,MASTER, MASTER_TO_SLAVE_TAG,        MPI_COMM_WORLD,&status);
         MPI_Recv(&upper_row ,   1,  MPI_INT,MASTER, MASTER_TO_SLAVE_TAG + 1,    MPI_COMM_WORLD,&status);
-        //MPI_Recv(mat_a + lower_row * (MAXSIZE),(upper_row - lower_row) * MAXSIZE,MPI_INT,MASTER,MASTER_TO_SLAVE_TAG + 2, MPI_COMM_WORLD,&status);   
-        MPI_Recv(mat_a,mat_size * MAXSIZE,MPI_INT,MASTER,MASTER_TO_SLAVE_TAG+2,MPI_COMM_WORLD,&status);
+        if (valid_range(lower_row,mat_size) && valid_range(upper_row - 1,mat_size)){
+            //MPI_Recv(mat_a + lower_row * (MAXSIZE),(upper_row - lower_row) * MAXSIZE,MPI_INT,MASTER,MASTER_TO_SLAVE_TAG + 2, MPI_COMM_WORLD,&status);   
+            MPI_Recv(mat_a,mat_size * MAXSIZE,MPI_INT,MASTER,MASTER_TO_SLAVE_TAG+2,MPI_COMM_WORLD,&status);
+        }
+        
     }
 
     if (valid_range(lower_row,mat_size) && valid_range(upper_row - 1,mat_size)){
@@ -158,17 +164,6 @@ int main(int argc,char* argv[]){
     }
 
     if (my_rank == MASTER){
-        //check assertion
-        int valid = 1;
-        for(int i = 0; i < mat_size; i++)
-            for(int j = 0; j < mat_size; j++)
-                valid = (valid && (mat_c[i][j] == expected_result[i][j]));
-        if (valid){
-            printf("Assertion OK, Running time = %.5f\n",end_time - start_time);
-        } else {
-            printf("Some calculation errors happened, running time = %.5f\n",end_time - start_time);
-        }
-
         // printf("Result matrix:\n");
         // {
         //     int i,j;
@@ -186,6 +181,17 @@ int main(int argc,char* argv[]){
         //         printf("%d ",expected_result[i][j]);
         //     printf("\n");
         // }
+
+        //check assertion
+        int valid = 1;
+        for(int i = 0; i < mat_size; i++)
+            for(int j = 0; j < mat_size; j++)
+                valid = (valid && (mat_c[i][j] == expected_result[i][j]));
+        if (valid){
+            printf("Assertion OK, Running time = %.5f\n",end_time - start_time);
+        } else {
+            printf("Some calculation errors happened, running time = %.5f\n",end_time - start_time);
+        }
     }
 
     MPI_Finalize();
